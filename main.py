@@ -142,10 +142,7 @@ async def on_message(message):
         await message.channel.send('Gang Goon! and Hello!')
 
     # -any greetings- #
-    if any(word in msg for word in greetings_list):
-        await message.channel.send(random.choice(greetings_reply))
-
-    if any(word in msg for word in in_greetings_list):
+    if any(word in msg for word in greetings_list or in_greetings_list):
         await message.channel.send(random.choice(greetings_reply))
 
     if message.content.startswith('$inspire'):
