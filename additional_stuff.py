@@ -81,5 +81,5 @@ async def on_message(message):
 
 
 
-chers.run('ODU5OTc2OTU0NDg0NDkwMjQx.YN0h8w.ip5Jbnk9qhg-AZq8QaSo-9UTayU')
+chers.run('')
 
