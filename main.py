@@ -1,14 +1,17 @@
-import json
 import random
 import discord
+import spacy
 import requests
-from discord.ext import commands
-import time
-from replit import db
+import json
+from textblob import TextBlob
+import nltk
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
+chers = discord.Client()
+
 
 # --- RECEIVING USER DATA --- #
 
-chers = discord.Client()
 
 # ==Greetings== #
 greetings_list = ["Hello", "Hi", "Hey", "hello", "hi", "hey",
@@ -21,7 +24,6 @@ greetings_reply = ["Hello! How are you!",
                    "What's up, fam?",
                    "I'm good! You?"]
 # ============== #
-
 
 # ==Negative Emotions== #
 light_words = ["annoyed", "confused", "irritated", "not okay", "bitter", "salty"]
@@ -126,13 +128,10 @@ insecure_encouragements = [
 
 # ============== #
 
-
 # ==Conversation== #
-
 
 # --- ACTUAL EVENTS --- #
 before_quote = "Hey, this might help, here's an inspiring quote:"
-
 
 # ==Definitions== #
 def get_quote():
@@ -141,17 +140,14 @@ def get_quote():
     quote = json_data[0]['q'] + " -" + json_data[0]['a']
     return quote
 
-
 def randnum(fname):
     lines = open(fname).read().splitlines()
     return random.choice(lines)
-
 
 @chers.event
 # console will give message when bot is ready
 async def on_ready():
     print('{0.user} has stood up.'.format(chers))
-
 
 @chers.event
 async def on_message(message):
@@ -214,7 +210,7 @@ async def on_message(message):
         quote = get_quote()
         await message.channel.send(quote)
         await message.channel.send(randnum('gifs.txt'))
-    #----------------------------------------------#
+    # ----------------------------------------------#
 
     keyWord = "PMABot"
 
@@ -419,7 +415,8 @@ async def on_message(message):
                                 sentiment_dict = sid_obj.polarity_scores(key)
                                 if sentiment_dict['compound'] < 0.5:
                                     for keys, values in objDict.items():
-                                        await message.channel.send("Ah, I see. It seems you are concerned about a " + keys + ". Is that correct? **y** or **n**")
+                                        await message.channel.send(
+                                            "Ah, I see. It seems you are concerned about a " + keys + ". Is that correct? **y** or **n**")
                         else:
                             continue
 
@@ -454,6 +451,7 @@ async def on_message(message):
 
     # if the user wants to speak to PMA again
     # elif keyWord in msg:
-    # await message.channel.send(random.choice(trigger_words))
+    # await message.channel.send(random.choice(trigger_words))k
+
 
 chers.run('')
