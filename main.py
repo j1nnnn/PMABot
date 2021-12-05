@@ -45,6 +45,29 @@ insecure_words = ["insecure", "insignificant", "incompetent", "I'm not enough", 
 double_meaning_words = ["mad"]
 # ============== #
 
+# ==Responses== #
+name_reply = ["What is your name?", "May I ask for your name?", "So, what's ya name?"]
+
+nick_ques = ["Do you have a nickname?", "Have a nickname?", "Do you have another name?"]
+
+nick_reply1 = ["Nice to meet you, ", "Hiya, " "What's going on, ", "What's good, " "Nice name, "]
+
+nick_reply2 = ["Then I'll call ya, ", "Alrighty, ", "Well, ", "Then you'll be called, "]
+
+feel_respondQuestion = ["How are you?", "How are you feeling today?", "So, how ya doin'?", "So, what's up?"]
+
+well_response1 = ["Awesome! That's good to hear!", "Nice, nice, nice! So glad to hear that.",
+                  "If you're doing well, then I'm happy!"
+                  "Wow! Someone's doing well!", "Dope! Man, am I happy to hear that.",
+                  "Oh, really? Super duper! That's amazing!"]
+
+neutral_response1 = ["Very neutral today, huh?", "Ahh, understandable. Today's pretty decent"]
+
+bad_response1 = ["But what's up? Did something happen?", "But, if you don't mind me asking, what happened?",
+                 "But is there something going on? Let's talk about it."]
+
+trigger_words = ["What's up?", "That's my name! You can keep talking to me!", "At your service!"]
+# ============== #
 
 # ==PMA Responses== #
 light_encouragements = [
@@ -191,6 +214,246 @@ async def on_message(message):
         quote = get_quote()
         await message.channel.send(quote)
         await message.channel.send(randnum('gifs.txt'))
+    #----------------------------------------------#
 
+    keyWord = "PMABot"
+
+    # embedded Help guide
+    if message.content.startswith('!help'):
+        embedVar = discord.Embed(title="Bot Help",
+                                 description="Here is a little guide to help you with speaking to PMABot",
+                                 color=0x00ff00)
+        embedVar.add_field(name="Field1", value="hi", inline=False)
+        embedVar.add_field(name="Field2", value="hi2", inline=False)
+        await message.channel.send(embed=embedVar)
+
+    # Greeting triggers the ChatBot program
+    if keyWord in msg:
+        if msg == keyWord:
+            await message.channel.send("No greeting? Then no service!")
+            return
+
+        # basic check
+        def check(m):
+            return m.author == message.author \
+                   and m.channel == message.channel
+
+        await message.channel.send(random.choice(greetings_reply))
+        # asking for name
+        await message.channel.send(random.choice(name_reply))
+        user_name = await chers.wait_for("message", check=check)
+
+        # asking for nickname
+        await message.channel.send("Do you have a nickname?: **y** or **n**")
+
+        # check for y or n
+        def check(ck):
+            return ck.author == message.author and ck.channel == message.channel and \
+                   ck.content.lower() in ["y", "n"]
+
+        nick_name = await chers.wait_for("message", check=check)
+        # adding nickname to your name
+        if nick_name.content.lower() == "y":
+            # basic check
+            def check(m):
+                return m.author == message.author \
+                       and m.channel == message.channel
+
+            await message.channel.send("Then, what is your nickname?")
+            nickname = await chers.wait_for("message", check=check)
+            await message.channel.send(random.choice(nick_reply1) + nickname.content)
+        else:
+            nickname = user_name.content + user_name.content[-1] + 'y'
+            await message.channel.send(random.choice(nick_reply2) + nickname)
+
+        # check for TextBlob
+        def check(m):
+            return m.author == message.author \
+                   and m.channel == message.channel
+
+        # == Asking user how they are || SENTIMENT ANALYSIS == #
+        nlp = spacy.load("en_core_web_sm")
+        sid_obj = SentimentIntensityAnalyzer()
+
+        await message.channel.send(random.choice(feel_respondQuestion))
+        feelAns = await chers.wait_for("message", check=check)
+        sentiment_dict = sid_obj.polarity_scores(feelAns.content)
+
+        # debugging
+        print("(Feel) Overall sentiment dictionary is : ", sentiment_dict)
+        print("sentence was rated as ", sentiment_dict['neg'] * 100, "% Negative")
+        print("sentence was rated as ", sentiment_dict['neu'] * 100, "% Neutral")
+        print("sentence was rated as ", sentiment_dict['pos'] * 100, "% Positive")
+
+        if sentiment_dict['pos'] > sentiment_dict['neg']:
+            # responding well back to user
+            await message.channel.send(random.choice(well_response1))
+            # need to add more
+
+        elif sentiment_dict['neg'] > sentiment_dict['pos']:
+            # The user is not doing well, we must help!
+            await message.channel.send(random.choice(light_encouragements))
+            # Asking about user's situation
+            await message.channel.send(random.choice(bad_response1))
+            situation_resp = await chers.wait_for("message", check=check)
+            sentiment_dict = sid_obj.polarity_scores(situation_resp.content)
+
+            # debugging
+            print("(Neg Feel) Overall sentiment dictionary is : ", sentiment_dict)
+            print("sentence was rated as ", sentiment_dict['neg'] * 100, "% Negative")
+            print("sentence was rated as ", sentiment_dict['neu'] * 100, "% Neutral")
+            print("sentence was rated as ", sentiment_dict['pos'] * 100, "% Positive")
+
+            # negative
+            if sentiment_dict['compound'] <= 0.5:
+                await message.channel.send(random.choice(light_encouragements))
+                # Getting nouns
+                sitResp_nlp = nlp(situation_resp.content)
+
+                # making sentences
+                sentences = list(sitResp_nlp.sents)
+                # this will reset after every situational message
+                sentCount = 0
+
+                # -after making sentences, getting words from each sentence- #
+                for i in range(len(sentences)):
+                    sentCount += 1
+
+                word_List = [[] for i in range(0, sentCount)]
+
+                for i in range(sentCount):
+                    sent = sentences[i]
+                    for words in sent:
+                        # special character check
+                        if words.text == "," or words.text == ".":
+                            continue
+                        else:
+                            word_List[i].append(words)
+
+                    # debug
+                    print(word_List[i])
+
+                # Specific tag List
+                objList = [[] for i in range(0, sentCount)]
+                adjList = [[] for i in range(0, sentCount)]
+                verbList = [[] for i in range(0, sentCount)]
+                advList = [[] for i in range(0, sentCount)]
+
+                # putting each word in each appropriate list, knows from WHICH SENTENCE and its POSITION
+                for i in range(sentCount):
+
+                    objList[i].append(i)
+                    adjList[i].append(i)
+                    verbList[i].append(i)
+                    advList[i].append(i)
+
+                    for word in word_List[i]:
+                        if word.pos_ == "NOUN":
+                            if word.text not in objList[i]:
+                                objList[i].append(word.text)
+                                objList[i].append(word_List[i].index(word))
+                            else:
+                                continue
+
+                        elif word.pos_ == "ADJ":
+                            if word.text not in adjList[i]:
+                                adjList[i].append(word.text)
+                                adjList[i].append(word_List[i].index(word))
+                            else:
+                                continue
+
+                        elif word.pos_ == "VERB":
+                            if word.text not in verbList[i]:
+                                verbList[i].append(word.text)
+                                verbList[i].append(word_List[i].index(word))
+                            else:
+                                continue
+
+                        elif word.pos_ == "ADV":
+                            if word.text not in advList[i]:
+                                advList[i].append(word.text)
+                                advList[i].append(word_List[i].index(word))
+                            else:
+                                continue
+
+                    print("Obj list:")
+                    print(objList[i])
+
+                    print("Adj list:")
+                    print(adjList[i])
+
+                    print("Verb list:")
+                    print(verbList[i])
+
+                    print("Adv list:")
+                    print(advList[i])
+
+                # getting polarity of each noun
+                # for nouns in noun_list:
+
+                noun_adjList = {}
+                verb_advList = []
+                objDict = []
+                AdjDict = []
+
+                def Merge(dict1, dict2):
+                    res = {**dict1, **dict2}
+                    return res
+
+                for i in range(sentCount):
+                    if objList[i][i] == adjList[i][i]:
+                        # adding a key of objects or adjectives and a value of their indices
+                        for j in range(1, len(objList[i]), 2):
+                            objDict = dict({objList[i][j]: objList[i][j + 1]})
+                        for k in range(1, len(adjList[i]), 2):
+                            AdjDict = dict({adjList[i][k]: adjList[i][k + 1]})
+
+                        for key, value in objDict.items():
+                            currVal1 = value
+                        for key, value in AdjDict.items():
+                            currVal2 = value
+
+                        if currVal1 > currVal2:
+                            noun_adjList = Merge(AdjDict, objDict)
+                            for key, value in AdjDict.items():
+                                sentiment_dict = sid_obj.polarity_scores(key)
+                                if sentiment_dict['compound'] < 0.5:
+                                    for keys, values in objDict.items():
+                                        await message.channel.send("Ah, I see. It seems you are concerned about a " + keys + ". Is that correct? **y** or **n**")
+                        else:
+                            continue
+
+                print(noun_adjList)
+
+                def check(ck):
+                    return ck.author == message.author and ck.channel == message.channel and \
+                           ck.content.lower() in ["y", "n"]
+
+                sitAns = await chers.wait_for("message", check=check)
+                if sitAns.content.lower() == "y":
+                    await message.channel.send("Let's talk it out then! Continue to give me some issues!")
+
+                def check(m):
+                    return m.author == message.author \
+                           and m.channel == message.channel
+
+                issueMsg = await chers.wait_for("message", check=check)
+
+
+            # neutral
+            elif sentiment_dict['neu'] > sentiment_dict['pos'] and sentiment_dict['neu'] > sentiment_dict['neg']:
+                await message.channel.send("Ahh, I see...")
+            # positive
+            else:
+                await message.channel.send(random.choice(well_response1))
+
+        # will need a while loop to keep asking and conversing until a specific keyword
+
+        else:
+            await message.channel.send(random.choice(neutral_response1))
+
+    # if the user wants to speak to PMA again
+    # elif keyWord in msg:
+    # await message.channel.send(random.choice(trigger_words))
 
 chers.run('')
